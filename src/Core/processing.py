@@ -1,99 +1,85 @@
-"""
-    @file processing.py
-    @brief Arquivo voltado para lidar com o pré-processamento dos modelos antes do treinamento - Dataset: RAVDESS.
-"""
+# @file processing.py
+# @brief Pré-processamento de áudio e extração de características MFCC.
 
-"""
-    Imports
-"""
-import librosa
-import numpy as np
+# Imports
 import os
+import numpy as np
+import librosa
+from sklearn.preprocessing import StandardScaler
 
-"""
-    Parâmetros padrões para o treinamento 
-"""
+# Variáveis Principais
+DATASET = "data/raw/ravdess/audio_speech_actors_01-24"
 SR = 16000
-DURACAO = 3
+DURACAO = 5
 SAMPLES = SR * DURACAO
 N_FFT = 512
 HOP_LENGTH = 256
 WIN_LENGTH = 512
 
-"""
-    @brief Ajusta o áudio para duração fixa definida por SAMPLES.
-    @param 'audio' Vetor de áudio carregado.
-    @return Áudio com tamanho padronizado.
-"""
-def padronizarAudio(audio):
-    if len(audio) > SAMPLES:
-        audio = audio[:SAMPLES]
-
-    else:
-        pad = SAMPLES - len(audio)
-        audio = np.pad(audio, (0, pad))
-
+# @brief Carrega um arquivo de áudio do dataset.
+# @param pasta_ator Caminho da pasta do ator.
+# @param arquivo Nome do arquivo de áudio.
+# @return Vetor contendo o sinal de áudio carregado.
+def carregar_audio(pasta_ator, arquivo):
+    caminho_arquivo = os.path.join(pasta_ator, arquivo)
+    audio, _ = librosa.load(caminho_arquivo, sr=SR)
     return audio
 
-"""
-    @brief Extrai coeficientes MFCC do sinal de áudio.
-    @param 'audio' Vetor de áudio padronizado.
-    @param 'n_mfcc' Número de coeficientes MFCC.
-    @return Matriz MFCC (n_mfcc x tempo).
-"""
-def extrairMFCC(audio, n_mfcc):
-    mfcc = librosa.feature.mfcc(y=audio, sr=SR, n_mfcc=n_mfcc, n_fft=N_FFT, hop_length=HOP_LENGTH, win_length=WIN_LENGTH)
-    return mfcc
+# @brief Padroniza o tamanho do áudio para uma duração fixa.
+# @param audio Vetor de áudio carregado.
+# @return Vetor de áudio com tamanho padronizado.
+def padronizar_audio(audio):
+    return librosa.util.fix_length(audio, size=SAMPLES)
 
-"""
-    @brief Segmenta a matriz MFCC em blocos menores.
-    @param 'mfcc' Matriz MFCC.
-    @param 'tamanho' Tamanho da janela temporal.
-    @return Lista de segmentos MFCC.
-"""
-def segmentarAudio(mfcc, tamanho=50):
-    segmentos = []
-    total = mfcc.shape[1]
+# @brief Extrai os coeficientes MFCC do áudio.
+# @param audio Vetor de áudio padronizado.
+# @param n_mfcc Número de coeficientes MFCC a serem extraídos.
+# @return Matriz contendo os coeficientes MFCC.
+def converter_audio(audio, n_mfcc):
+    return librosa.feature.mfcc(y=audio, sr=SR, n_mfcc=n_mfcc, n_fft=N_FFT, hop_length=HOP_LENGTH, win_length=WIN_LENGTH)
 
-    for i in range(0, total - tamanho + 1, tamanho):
-        segmentos.append(mfcc[:, i:i+tamanho])
+# @brief Normaliza os coeficientes MFCC utilizando CMVN.
+# @param mfcc Matriz de coeficientes MFCC.
+# @return Matriz MFCC normalizada com média zero e variância unitária.
+def normalizar_mfcc(mfcc):
+    scaler = StandardScaler()
+    mfcc_normalizado = scaler.fit_transform(mfcc.T).T
+    return mfcc_normalizado
 
-    return segmentos
-
-"""
-    @brief Carrega o dataset RAVDESS e extrai os segmentos MFCC.
-    @param 'pasta' Caminho da pasta raiz do dataset.
-    @param 'n_mfcc' Número de coeficientes MFCC.
-    @return X (dados), y (rótulos), atores (identificação para GroupKFold).
-"""
-def carregarDataset(pasta, n_mfcc):
+# @brief Carrega o dataset RAVDESS e realiza o pré-processamento completo.
+# @param pasta Caminho da pasta raiz do dataset.
+# @param n_mfcc Número de coeficientes MFCC a serem extraídos.
+# @return Tupla contendo:
+# - X: matriz de características MFCC
+# - y: vetor de rótulos de emoção
+# - atores: vetor com identificação dos atores
+def carregarDataset(pasta=DATASET, n_mfcc=13):
     X = []
     y = []
     atores = []
 
-    for ator in os.listdir(pasta):
-        pastaAtor = os.path.join(pasta, ator)
+    for ator in np.sort(os.listdir(pasta)):
+        pasta_ator = os.path.join(pasta, ator)
 
-        if not os.path.isdir(pastaAtor):
+        if not os.path.isdir(pasta_ator):
             continue
 
-        for arquivo in os.listdir(pastaAtor):
+        for arquivo in os.listdir(pasta_ator):
             if not arquivo.endswith(".wav") or ":Zone.Identifier" in arquivo:
                 continue
 
-            caminho = os.path.join(pastaAtor, arquivo)
-            audio, _ = librosa.load(caminho, sr=SR)
-            audio = padronizarAudio(audio)
+            audio = carregar_audio(pasta_ator=pasta_ator, arquivo=arquivo)
+            audio_padronizado = padronizar_audio(audio=audio)
 
-            mfcc = extrairMFCC(audio, n_mfcc)
-            segmentos = segmentarAudio(mfcc)
+            mfcc_bruto = converter_audio(audio_padronizado, n_mfcc=n_mfcc)
+
+            mfcc_final = normalizar_mfcc(mfcc_bruto)
 
             emocao = int(arquivo.split("-")[2]) - 1
 
-            for seg in segmentos:
-                X.append(seg)
-                y.append(emocao)
-                atores.append(ator)
+            X.append(mfcc_final)
+            y.append(emocao)
+            atores.append(ator)
 
     X = np.array(X)
     y = np.array(y)
@@ -101,5 +87,4 @@ def carregarDataset(pasta, n_mfcc):
 
     X = X[..., np.newaxis]
 
-    print(f"Total de Segmentos: {len(X)}")
     return X, y, atores

@@ -1,5 +1,5 @@
 # @file utils.py
-# @brief Arquivo voltado às funções utilitárias adicionais - Dataset: RAVDESS.
+# @brief Arquivo voltado às funções utilitárias adicionais.
 
 # Imports
 import numpy as np
@@ -7,10 +7,8 @@ import tensorflow as tf
 import random
 import os
 
-"""
-    @brief Fixa seeds para reprodutibilidade do experimento.
-    @param 'seed' Valor inteiro para inicialização aleatória.
-"""
+# @brief Fixa seeds para reprodutibilidade do experimento.
+# @param 'seed' Valor inteiro para inicialização aleatória.
 def fixarSeeds(seed=42):
     os.environ["PYTHONHASHSEED"] = str(seed)
     os.environ["TF_DETERMINISTIC_OPS"] = "1"

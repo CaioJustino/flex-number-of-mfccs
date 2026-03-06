@@ -1,6 +1,7 @@
-"""
-    Imports
-"""
+# @file viewPkl.py
+# @brief Arquivo voltado para abrir a visualização de arquivos na extensão ".pkl".
+
+# Imports
 import pickle
 import pprint
 

@@ -1,11 +1,7 @@
-"""
-    @file training.py
-    @brief Arquivo voltado para o treinamento dos modelos - Dataset: RAVDESS.
-"""
+# @file training.py
+# @brief Arquivo voltado para o treinamento dos modelos.
 
-"""
-    Imports
-"""
+# Imports
 import os
 import pickle
 import numpy as np
@@ -16,24 +12,21 @@ from ..models.crnn import criarCRNN
 from ..models.cnn import criarCNN
 from ..models.resnet import criarResNet
 
-"""
-    onfiguração de Otimização 1: Otimizar o Tempo de Treino.
-"""
+# Configuração de Otimização 1: Otimizar o Tempo de Treino.
 tf.config.optimizer.set_jit(True)
 
-"""
-    @brief Realiza o treinamento do modelo utilizando validação cruzada por atores.
-    @param 'X' Matriz de entrada (amostras, altura, largura, canais).
-    @param 'y' Vetor de rótulos.
-    @param 'atores' Identificação do ator para GroupKFold.
-    @param 'arquitetura' Arquitetura a ser utilizada.
-    @param 'n_mfcc' Número de coeficientes MFCC utilizados.
-    @param 'n_splits' Número de folds para validação cruzada.
-    @param 'epochs' Número de épocas de treinamento.
-    @param 'batch_size' Tamanho do batch.
-    @param 'verbose' Nível de verbosidade do treinamento.
-    @return Acurácia média dos folds.
-"""
+
+# @brief Realiza o treinamento do modelo utilizando validação cruzada por atores.
+# @param 'X' Matriz de entrada (amostras, altura, largura, canais).
+# @param 'y' Vetor de rótulos.
+# @param 'atores' Identificação do ator para GroupKFold.
+# @param 'arquitetura' Arquitetura a ser utilizada.
+# @param 'n_mfcc' Número de coeficientes MFCC utilizados.
+# @param 'n_splits' Número de folds para validação cruzada.
+# @param 'epochs' Número de épocas de treinamento.
+# @param 'batch_size' Tamanho do batch.
+# @param 'verbose' Nível de verbosidade do treinamento.
+# @return Acurácia média dos folds.
 def treinarModelo(X, y, atores, arquitetura="CRNN", n_mfcc=13, n_splits=5, epochs=50, batch_size=32, verbose=1):
     pasta_saida = f"resultados/{arquitetura}_MFCC{n_mfcc}"
     os.makedirs(pasta_saida, exist_ok=True)
